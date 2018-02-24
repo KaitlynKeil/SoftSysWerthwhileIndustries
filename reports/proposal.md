@@ -1,4 +1,4 @@
-# Project 1 Proposal
+# Making Asteroids in C
 
 ## Bryan Werth and Kaitlyn Keil
 

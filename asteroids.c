@@ -8,6 +8,7 @@
 #include <math.h>
 
 #include <GL/glut.h>
+#include "asteroids.h"
 
 #define NUM_AST        5
 #define WX             250
@@ -21,32 +22,12 @@ float min_yvel = -0.005f;
 float max_yvel = -0.01f;
 float min_xvel = -0.01f;
 float max_xvel = 0.01f;
-float ast_size = 0.1f;
 
 float float_rand( float min, float max )
 {
     float scale = rand() / (float) RAND_MAX; /* [0, 1.0] */
     return min + scale * ( max - min );      /* [min, max] */
 }
-
-typedef struct {
-  // Asteroid life
-  int alive; // Is it still around?
-  float life; // Health
-
-  // color/apperance
-  float red = 1.0f;
-  float green = 1.0f;
-  float blue = 1.0f;
-
-  // position
-  float xpos;
-  float ypos;
-
-  // velocity
-  float xvel;
-  float yvel;
-} Asteroid;
 
 Asteroid *make_asteroid() {
   Asteroid *new = malloc(sizeof(Asteroid));
@@ -71,8 +52,7 @@ int update_asteroid(Asteroid *ast) {
   if(abs(ast->xpos) > x_bound) {ast->xvel *= -1.0f;}
   if (ast->ypos < -y_bound) {
     free_asteroid(ast);
-    return -1;
+    return 0;
   }
-  return 0;
-
+  return 1;
 }

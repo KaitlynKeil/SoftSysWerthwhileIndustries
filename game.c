@@ -1,28 +1,33 @@
 /* Main running for our game
-   Needs to have gcc game.c asteroids.c -lGL -lGLU -lglut -lm to run
+   Needs to have gcc game.c quadtree.c asteroids.c -lGL -lGLU -lglut -lm to run
 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <GL/glut.h>
-#include "asteroids.h"
+#include <time.h>
+#include "quadtree.h"
 
-#define NUM_AST        5
+#define MAX_AST        20
 #define WX             250
 #define WY             250
 #define true           1
 
 float ast_size = 0.1f;
 
-int loop;
-Asteroid *ast_field[NUM_AST];
+time_t cur_time, ltime;
+double dt;
+
+int loop, num_freed, num_asts = 5;
+Asteroid *ast_field[MAX_AST];
+Quad *q;
 
 
 void draw_ast() {
   float x, y;
 
-  for (loop = 0; loop < NUM_AST; loop++) {
+  for (loop = 0; loop < num_asts; loop++) {
     if (ast_field[loop]->alive == true) {
       x = ast_field[loop]->xpos;
       y = ast_field[loop]->ypos;
@@ -40,26 +45,26 @@ void draw_ast() {
         glVertex2f(x+ast_size, y-ast_size); // lower left
         glVertex2f(x, y-(ast_size*0.5f)); // bottom side
       glEnd();
-
-      // Update values
-      //Move
-      int is_alive = update_asteroid(ast_field[loop]);
-      if(is_alive != true) {
-      	ast_field[loop] = make_asteroid();
-      }
+    }
+    else {
+      ast_field[loop] = make_asteroid();
     }
   }
+  num_freed = update_quad(q, ast_field, num_asts);
 }
 
 void init( ) {
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glEnable(GL_DEPTH_TEST);
+    q = make_quad(make_point(-300, 400), make_point(300,-400));
 
     // Initialize asteroids
-    for (loop = 0; loop < NUM_AST; loop++) {
+    for (loop = 0; loop < num_asts; loop++) {
         ast_field[loop] = make_asteroid();
+        insert_node(q, ast_to_node(ast_field[loop]));
     }
+
 }
 
 void drawScene( ) {
@@ -103,6 +108,8 @@ void reshape(int w, int h) {
 
 void idle ( ) {
   glutPostRedisplay();
+  cur_time = time(NULL);
+  ltime = time(NULL);
 }
  
 /* Main function: GLUT runs as a console application starting at main()  */

@@ -1,96 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "quadtree.h"
 
-float x_bound = 3.0f;
-float y_bound = 4.0f;
+// float x_bound = 3.0f;
+// float y_bound = 4.0f;
 
-float min_yvel = -0.005f;
-float max_yvel = -0.01f;
-float min_xvel = -0.01f;
-float max_xvel = 0.01f;
-float ast_size = 0.1f;
-
-
-float float_rand( float min, float max )
-{
-    float scale = rand() / (float) RAND_MAX; /* [0, 1.0] */
-    return min + scale * ( max - min );      /* [min, max] */
-}
-
-typedef struct {
-	int x;
-	int y;
-} Point;
-
-typedef struct {
-	// Asteroid life
-	int alive; // Is it still around?
-	float life; // Health
-
-	// color/apperance
-	float red;
-	float green;
-	float blue;
-
-	// position
-	float xpos;
-	float ypos;
-
-	// velocity
-	float xvel;
-	float yvel;
-} asteroid;
-
-typedef struct 
-{
-	Point *pos;
-	asteroid *ast;
-} Node;
-
-typedef struct sQuad
-{
-	// Hold details of the boundary of this node
-	Point *topLeft;
-	Point *botRight;
-
-	Node *n;
-
-	// Children
-	struct sQuad *topLeftTree;
-	struct sQuad *topRightTree;
-	struct sQuad *botLeftTree;
-	struct sQuad *botRightTree;
-
-}Quad;
-
-void initAsteroids(int i, asteroid *ast_field) {
-    ast_field[i].alive = 1;
-    ast_field[i].life = 1.0f;
-
-    ast_field[i].xpos = float_rand(-x_bound, x_bound);
-    ast_field[i].ypos = y_bound;
-
-    ast_field[i].red = 0.5f;
-    ast_field[i].green = 0.5f;
-    ast_field[i].blue = 1.0f;
-
-    ast_field[i].yvel = float_rand(max_yvel, min_yvel);
-    ast_field[i].xvel = float_rand(max_xvel, min_xvel);
-}
-
-Point *make_point(int x, int y) {
-	Point *new = malloc(sizeof(Point));
-    new->x = x;
-    new->y = y;
-    return new;
-}
-
-Node *make_node(Point *center, asteroid *ob) {
-	Node *new = malloc(sizeof(Node));
-	new->pos = make_point(center->x, center->y);
-	new->ast = ob;
-	return new;
-}
+// float min_yvel = -0.005f;
+// float max_yvel = -0.01f;
+// float min_xvel = -0.01f;
+// float max_xvel = 0.01f;
+// float ast_size = 0.1f;
 
 Quad *make_quad(Point *topL, Point *botR) {
 	Quad *new = malloc(sizeof(Quad));
@@ -104,17 +23,61 @@ Quad *make_quad(Point *topL, Point *botR) {
 	return new;
 }
 
+/* Frees the entire quadtree */
+void free_quad(Quad *q) {
+	if(q!=NULL){
+		free_quad(q->topLeftTree);
+		free_quad(q->topRightTree);
+		free_quad(q->botLeftTree);
+		free_quad(q->botRightTree);
+	}
+	free(q);
+}
+
+/* Clears everything out of the quad tree to reset */
+void clear_quad(Quad *q) {
+	if(q == NULL) return;
+
+	q->n = NULL;
+	clear_quad(q->topLeftTree);
+	q->topLeftTree = NULL;
+	clear_quad(q->topRightTree);
+	q->topRightTree = NULL;
+	clear_quad(q->botLeftTree);
+	q->botLeftTree = NULL;
+	clear_quad(q->botRightTree);
+	q->botRightTree = NULL;
+}
+
+/* Checks to see if the point is inside the boundary
+ of the given quadrant */
+int in_boundary(Quad *q, Point *p) {
+	return(p->x >= q->topLeft->x &&
+		p->x <= q->botRight->x &&
+		p->y <= q->topLeft->y &&
+		p->y >= q->botRight->y);
+}
+
+/* Finds where it should insert the new nodes, makes subtrees if it must */
 void insert_node(Quad *q, Node *node) {
-	if(node == NULL) {return;}
+	if(node == NULL) {
+		return;
+	}
 
 	// Current quad can't contain it
-	if(!in_boundary(q, node->pos)) {return;}
+	if(!in_boundary(q, node->pos)) {
+		// puts("Node out of bounds");
+		return;
+	}
 
 	// Indicates unit area, cannot subdivide further
-	if(abs(q->topLeft->x - q->botRight->x) <= 1 &&
-		abs(q->topLeft->y - q->botRight->y) <= 1)
+	if(abs(q->topLeft->x - q->botRight->x) <= 10 &&
+		abs(q->topLeft->y - q->botRight->y) <= 10)
 	{
 		if(q->n == NULL) {
+			// printf("\nInserting ");
+			// print_point(node->pos);
+			// printf("\n");
 			q->n = node;
 		}
 		return;
@@ -122,7 +85,7 @@ void insert_node(Quad *q, Node *node) {
 
 	if ((q->topLeft->x + q->botRight->x) / 2 >= node->pos->x) {
 		// Indicates topLeftTree
-		if ((q->topLeft->y + q->botRight->y) / 2 >= node->pos->y) {
+		if ((q->topLeft->y + q->botRight->y) / 2 <= node->pos->y) {
 			if(q->topLeftTree == NULL) {
 				q->topLeftTree = make_quad(
 					make_point(q->topLeft->x, q->topLeft->y),
@@ -145,7 +108,7 @@ void insert_node(Quad *q, Node *node) {
 	}
 	else {
 		// Indicates topRightTree
-		if ((q->topLeft->y + q->botRight->y) / 2 >= node->pos->y)
+		if ((q->topLeft->y + q->botRight->y) / 2 <= node->pos->y)
         {
             if (q->topRightTree == NULL){
                 q->topRightTree = make_quad(
@@ -171,7 +134,9 @@ void insert_node(Quad *q, Node *node) {
 	}
 }
 
+/* searches the quadtree for that point */
 Node *search(Quad *q, Point *p) {
+	if(q == NULL) {return NULL;}
 	// Current quad cannot contain it
 	if (!in_boundary(q, p)) {return NULL;}
 
@@ -181,7 +146,7 @@ Node *search(Quad *q, Point *p) {
 	if ((q->topLeft->x + q->botRight->x) / 2 >= p->x)
     {
         // Indicates topLeftTree
-        if ((q->topLeft->y + q->botRight->y) / 2 >= p->y)
+        if ((q->topLeft->y + q->botRight->y) / 2 <= p->y)
         {
             if (q->topLeftTree == NULL)
                 return NULL;
@@ -199,7 +164,7 @@ Node *search(Quad *q, Point *p) {
     else
     {
         // Indicates topRightTree
-        if ((q->topLeft->y + q->botRight->y) / 2 >= p->y)
+        if ((q->topLeft->y + q->botRight->y) / 2 <= p->y)
         {
             if (q->topRightTree == NULL)
                 return NULL;
@@ -216,30 +181,99 @@ Node *search(Quad *q, Point *p) {
     }
 }
 
-int in_boundary(Quad *q, Point *p) {
-	return(p->x >= q->topLeft->x &&
-		p->x <= q->botRight->x &&
-		p->y >= q->topLeft->y &&
-		p->y <= q->botRight->y);
+/* Clears the quadtree, then updates and inserts the
+ asteroids. Returns the number of asteroids that went
+ off-screen. */
+int update_quad(Quad *q, Asteroid **asts, int num_asts) {
+	clear_quad(q);
+	int i, num_freed = 0;
+	for(i = 0; i<num_asts; i++){
+		int on_screen = update_asteroid(asts[i]);
+		if(on_screen){
+		    insert_node(q, ast_to_node(asts[i]));
+	    }
+	    else {
+	    	num_freed++;
+	    }
+	}
+	return num_freed;
 }
 
-int main() {
-	asteroid ast[3];
-	int i;
-	for(i=0;i<3;i++) {
-		initAsteroids(i, ast);
-	}
-	// TODO: convert float x/y from asteroids to int coords
-	Quad *center = make_quad(make_point(0, 0), make_point(8,8));
-	Node *a = make_node(make_point(1,1), &ast[0]);
-	Node *b = make_node(make_point(2,5), &ast[1]);
-	Node *c = make_node(make_point(7,6), &ast[2]);
-	
-	insert_node(center, a);
-	insert_node(center, b);
-	insert_node(center, c);
-	printf("%f\n", search(center, make_point(1,1))->ast->xpos);
-	printf("%f\n", search(center, make_point(2,5))->ast->xpos);
-	printf("%f\n", search(center, make_point(7,6))->ast->xpos);
-	printf("%f\n", search(center, make_point(4,4))->ast->xpos);
+void print_quad(Quad *q) {
+	if(q == NULL) {return;}
+	printf("Quad");
+	print_node(q->n);
+	printf(" spans ");
+	print_point(q->topLeft);
+	printf(" to ");
+	print_point(q->botRight);
+	printf(" {\n\t top left:   ");
+	print_quad(q->topLeftTree);
+	printf("\n\t top right:    ");
+	print_quad(q->topRightTree);
+	printf("\n\t bottom left:  ");
+	print_quad(q->botLeftTree);
+	printf("\n\t bottom right: ");
+	print_quad(q->botRightTree);
+	printf("\n}\n");
 }
+
+void print_occupied(Quad *q) {
+	if(q != NULL) {
+		if(q->n != NULL){
+			printf("\nQuad");
+			print_node(q->n);
+			printf(" spans ");
+			print_point(q->topLeft);
+			printf(" to ");
+			print_point(q->botRight);
+			printf("\n");
+	    }
+		print_occupied(q->topLeftTree);
+		print_occupied(q->topRightTree);
+		print_occupied(q->botLeftTree);
+		print_occupied(q->botRightTree);
+    }
+}
+/* Checks if there are any collisions at a point */
+int check_collisions(Quad *q, Point *p) {
+	Node *ast = search(q, p);
+	if(ast!=NULL){
+		return ast_collision(ast->ast, p);
+	}
+	return 0;
+}
+
+// int main() {
+// 	Asteroid *ast[3];
+// 	int i;
+// 	for(i=0;i<3;i++) {
+// 		ast[i] = make_asteroid();
+// 		// print_ast(ast[i]);
+// 	}
+// 	// TODO: convert float x/y from asteroids to int coords
+// 	Quad *center = make_quad(make_point(-300, 400), make_point(300,-400));
+// 	Node *a = make_node(convert_coords(ast[0]), ast[0]);
+// 	Node *b = make_node(convert_coords(ast[1]), ast[1]);
+// 	Node *c = make_node(convert_coords(ast[2]), ast[2]);
+	
+// 	insert_node(center, a);
+// 	insert_node(center, b);
+// 	insert_node(center, c);
+
+// 	print_occupied(center);
+
+// 	// print_quad(center);
+
+//     printf("\n");
+// 	print_node(search(center, convert_coords(ast[0])));
+// 	printf("\n");
+// 	if(check_collisions(center, convert_coords(ast[0]))) {
+// 		puts("Got collision!");
+// 	}
+
+// 	update_quad(center, ast, 3);
+// 	puts("Quad updated");
+// 	// printf("%d\n", check_collisions(center, convert_coords(ast[0])));
+// 	print_occupied(center);
+// }

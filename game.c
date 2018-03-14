@@ -76,7 +76,17 @@ void drawScene( ) {
 	gluLookAt(	0.0f, 0.0f, 10.0f,
 				0.0f, 0.0f,  0.0f,
 				0.0f, 1.0f,  0.0f);
+  
+  glBegin(GL_QUADS);
+    glVertex3f(-0.5f+globalX,-2.7f+globalY, 0.0f);
+    glVertex3f(0.0f+globalX,-2.2f+globalY, 0.0f);
+    glVertex3f(.5f+globalX, -2.7f+globalY, 0.0f);
+    glVertex3f(0.0f+globalX,-2.45f+globalY, 0.0f);
+  glEnd();
+
 	draw_ast();
+
+  updateLasers(*laserList);
 	
   glutSwapBuffers();
 }
@@ -111,9 +121,51 @@ void idle ( ) {
   cur_time = time(NULL);
   ltime = time(NULL);
 }
+
+void processSpecialKeys(int key, int x, int y) {
+
+  switch(key) {
+    case GLUT_KEY_LEFT :
+        if((-.6f+globalX)<-4.1f){
+        } else{
+          globalX -= .1f;
+        } break;
+    case GLUT_KEY_RIGHT :
+        if((.6f+globalX)>4.2f){
+        } else{
+          globalX += .1f;
+        } break;
+    case GLUT_KEY_UP :
+        if((-2.1f+globalY)>4.1f){
+        } else{
+          globalY += .1f;
+        } break;
+    case GLUT_KEY_DOWN :
+        if((-2.7f+globalY)<-4.1f){
+        } else{
+          globalY -= .1f;
+        } break;
+    case GLUT_KEY_INSERT:
+        addLaser();
+        break;
+  }
+}
  
 /* Main function: GLUT runs as a console application starting at main()  */
 int main (int argc, char** argv) {
+  Laser* laser1 = (Laser*)malloc(sizeof(Laser));
+  LaserNode* firstNode = (LaserNode*)malloc(sizeof(LaserNode));
+  //Laser* laser1 = (Laser*)malloc(sizeof(Laser));
+  laser1->xPos = 0.0f;
+  laser1->yPos = 0.0f;
+  laser1->xVel = 0.0f;
+  laser1->yVel = 0.0f;
+  //LaserNode* firstNode = (LaserNode*)malloc(sizeof(LaserNode));
+  firstNode->val = laser1;
+  firstNode->next = NULL;
+
+  laserList = &firstNode;
+
   glutInit(&argc, argv);
   glutCreateWindow("CMPS 161 - Final Project");
   glutInitDisplayMode(GLUT_DEPTH | GLUT_RGBA | GLUT_DOUBLE);
@@ -123,6 +175,7 @@ int main (int argc, char** argv) {
   glutDisplayFunc(drawScene);
   glutReshapeFunc(reshape);
   glutIdleFunc(idle);
+  glutSpecialFunc(processSpecialKeys);
   glutMainLoop();
   return 0;
 }

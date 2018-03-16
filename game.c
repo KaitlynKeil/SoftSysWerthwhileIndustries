@@ -7,7 +7,7 @@
 #include <math.h>
 #include <GL/glut.h>
 #include <time.h>
-#include "quadtree.h"
+#include "lasers.h"
 
 #define MAX_AST        20
 #define WX             250
@@ -19,7 +19,7 @@ float ast_size = 0.1f;
 time_t cur_time, ltime;
 double dt;
 
-int loop, num_freed, num_asts = 5;
+int loop, num_freed, num_asts = 5, score;
 Asteroid *ast_field[MAX_AST];
 Quad *q;
 
@@ -77,6 +77,7 @@ void drawScene( ) {
 				0.0f, 0.0f,  0.0f,
 				0.0f, 1.0f,  0.0f);
   
+  //Draws the spaceship at the updated position
   glBegin(GL_QUADS);
     glVertex3f(-0.5f+globalX,-2.7f+globalY, 0.0f);
     glVertex3f(0.0f+globalX,-2.2f+globalY, 0.0f);
@@ -84,9 +85,14 @@ void drawScene( ) {
     glVertex3f(0.0f+globalX,-2.45f+globalY, 0.0f);
   glEnd();
 
-	draw_ast();
-
+  //checks for collisions between the lasers and the asteroids
+  checkLaserAstCollisions(*laserList,q);
+  //checks for collisions between the ship and the asteroids
+  checkShipCollisions();
+  //update the lasers
   updateLasers(*laserList);
+  //draw the asteroids
+	draw_ast();
 	
   glutSwapBuffers();
 }
@@ -122,37 +128,60 @@ void idle ( ) {
   ltime = time(NULL);
 }
 
+//Handles user controlled operations including shooting and the spaceship movement
 void processSpecialKeys(int key, int x, int y) {
 
   switch(key) {
+    //if the left arrow is pressed, decrement x position
     case GLUT_KEY_LEFT :
         if((-.6f+globalX)<-4.1f){
         } else{
           globalX -= .1f;
         } break;
+    //if the right arrow is pressed, increment x position
     case GLUT_KEY_RIGHT :
         if((.6f+globalX)>4.2f){
         } else{
           globalX += .1f;
         } break;
+    //if the up arrow is pressed, increment y position
     case GLUT_KEY_UP :
         if((-2.1f+globalY)>4.1f){
         } else{
           globalY += .1f;
         } break;
+    //if the down arrow is pressed, decrement y position
     case GLUT_KEY_DOWN :
         if((-2.7f+globalY)<-4.1f){
         } else{
           globalY -= .1f;
         } break;
+    //add a laser if the insert key is pressed
     case GLUT_KEY_INSERT:
         addLaser();
         break;
   }
 }
- 
+
+//Checks for collisions between the asteroids and the spaceship and commences endgame 
+//if there is a collision
+int checkShipCollisions(){
+  //check for collisions at the four vertices of the spaceshipp
+  int left = check_collisions(q, convert_coords(globalX-.5f,globalY-2.7f));
+  int up = check_collisions(q,convert_coords(globalX,globalY-2.2f));
+  int down = check_collisions(q,convert_coords(globalX,globalY-2.45f));
+  int right = check_collisions(q,convert_coords(globalX+.5f,globalY-2.7f));
+  //if there is a collision commence endgame
+  if (left || right || up || down){
+    printf("Game Over, Final Score is %d\n",score);
+    score = 0;
+    return 1;
+  }
+  return 0;
+}
 /* Main function: GLUT runs as a console application starting at main()  */
 int main (int argc, char** argv) {
+  //Instantiates a laser with zero velocity as the first laser in the linkedlist
   Laser* laser1 = (Laser*)malloc(sizeof(Laser));
   LaserNode* firstNode = (LaserNode*)malloc(sizeof(LaserNode));
   //Laser* laser1 = (Laser*)malloc(sizeof(Laser));

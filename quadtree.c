@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include "quadtree.h"
 
+#define AST_SIZE 10
+
 // float x_bound = 3.0f;
 // float y_bound = 4.0f;
 
@@ -71,8 +73,9 @@ void insert_node(Quad *q, Node *node) {
 	}
 
 	// Indicates unit area, cannot subdivide further
-	if(abs(q->topLeft->x - q->botRight->x) <= 10 &&
-		abs(q->topLeft->y - q->botRight->y) <= 10)
+	// variable size of asteroid here
+	if(abs(q->topLeft->x - q->botRight->x) <= AST_SIZE &&
+		abs(q->topLeft->y - q->botRight->y) <= AST_SIZE)
 	{
 		if(q->n == NULL) {
 			// printf("\nInserting ");

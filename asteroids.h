@@ -36,5 +36,5 @@ void print_node(Node *n);
 int ast_collision(Asteroid *ast, Point *p);
 void free_asteroid(Asteroid *ast);
 int update_asteroid(Asteroid *ast);
-Point *convert_coords(Asteroid *ast);
+Point *convert_coords(float x, float y);
 Node *ast_to_node(Asteroid *ast);

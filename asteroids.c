@@ -64,7 +64,7 @@ void print_point(Point *p) {
 void print_ast(Asteroid *a) {
   if(a==NULL) {return;}
   printf("Asteroid at ");
-  print_point(convert_coords(a));
+  print_point(convert_coords(a->xpos, a->ypos));
   // printf("\n");
 }
 
@@ -96,19 +96,19 @@ int update_asteroid(Asteroid *ast) {
 
 /* Given an Asteroid, converts the floating point coordinates
 to cartesian integer point */
-Point *convert_coords(Asteroid *ast) {
+Point *convert_coords(float x, float y) {
   // return make_point((ast->xpos * SCALE)+SHIFTX, (ast->ypos * SCALE)+SHIFTY);
-  return make_point((ast->xpos * SCALE), (ast->ypos * SCALE));
+  return make_point((x * SCALE), (y * SCALE));
 }
 
 /* Makes the asteroids into nodes */
 Node *ast_to_node(Asteroid *ast) {
-  return make_node(convert_coords(ast), ast);
+  return make_node(convert_coords(ast->xpos, ast->ypos), ast);
 }
 
 /* Checks to see if the point is inside the asteroid's radius. */
 int ast_collision(Asteroid *ast, Point *p) {
-  Point *a = convert_coords(ast);
+  Point *a = convert_coords(ast->xpos, ast->ypos);
   int x = p->x, ax = a->x;
   int y = p->y, ay = a->y;
   int res = (x >= ax-ast_radius &&
